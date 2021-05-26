@@ -22,19 +22,15 @@ losetup -d "$LOOP_DEV"
 
 cp /boot/vmlinuz-*.x86_64 "$ISO_CONTENT"/vmlinuz
 
-go build -o "$INITRAMFS"/init ./app
+CGO_ENABLED=0 go build -o "$INITRAMFS"/init ./app
 
-mkdir -p "$INITRAMFS"/{modules,lib64,etc/pki/tls/certs}
+mkdir -p "$INITRAMFS"/{modules,etc/pki/tls/certs}
 
 xzcat "$MODULES"/kernel/drivers/block/virtio_blk.ko.xz > "$INITRAMFS"/modules/virtio_blk.ko
 xzcat "$MODULES"/kernel/drivers/scsi/virtio_scsi.ko.xz > "$INITRAMFS"/modules/virtio_scsi.ko
 xzcat "$MODULES"/kernel/drivers/net/virtio_net.ko.xz > "$INITRAMFS"/modules/virtio_net.ko
 xzcat "$MODULES"/kernel/drivers/net/net_failover.ko.xz > "$INITRAMFS"/modules/net_failover.ko
 xzcat "$MODULES"/kernel/net/core/failover.ko.xz > "$INITRAMFS"/modules/failover.ko
-
-cp /lib64/libpthread.so.0 "$INITRAMFS"/lib64
-cp /lib64/libc.so.6 "$INITRAMFS"/lib64
-cp /lib64/ld-linux-x86-64.so.2 "$INITRAMFS"/lib64
 
 cp /etc/pki/tls/certs/ca-bundle.crt "$INITRAMFS"/etc/pki/tls/certs
 

@@ -31,8 +31,6 @@ func Configure() {
 	modprobe("/modules/failover.ko")
 	modprobe("/modules/net_failover.ko")
 	modprobe("/modules/virtio_net.ko")
-	modprobe("/modules/virtio_scsi.ko")
-	modprobe("/modules/virtio_blk.ko")
 
 	// Configure network
 	ifs, err := net.Interfaces()

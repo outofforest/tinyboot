@@ -11,8 +11,6 @@ mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs}
 
 CGO_ENABLED=0 go build -o "$DIR"/initramfs/init ./app
 cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs
-xzcat "$MODULES"/kernel/drivers/block/virtio_blk.ko.xz > "$DIR"/initramfs/modules/virtio_blk.ko
-xzcat "$MODULES"/kernel/drivers/scsi/virtio_scsi.ko.xz > "$DIR"/initramfs/modules/virtio_scsi.ko
 xzcat "$MODULES"/kernel/drivers/net/virtio_net.ko.xz > "$DIR"/initramfs/modules/virtio_net.ko
 xzcat "$MODULES"/kernel/drivers/net/net_failover.ko.xz > "$DIR"/initramfs/modules/net_failover.ko
 xzcat "$MODULES"/kernel/net/core/failover.ko.xz > "$DIR"/initramfs/modules/failover.ko

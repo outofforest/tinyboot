@@ -5,11 +5,12 @@ set -e
 DIR=$(mktemp /tmp/iso-server.XXXXXX -d)
 MODULES=/lib/modules/$(uname -r)
 
-mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs}
+mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs,initramfs/proc/self}
 
 # Copy stuff to initramfs
 
 CGO_ENABLED=0 go build -o "$DIR"/initramfs/init ./app
+ln -s /init "$DIR"/initramfs/proc/self/exe
 cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs
 xzcat "$MODULES"/kernel/drivers/net/virtio_net.ko.xz > "$DIR"/initramfs/modules/virtio_net.ko
 xzcat "$MODULES"/kernel/drivers/net/net_failover.ko.xz > "$DIR"/initramfs/modules/net_failover.ko

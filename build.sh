@@ -10,17 +10,12 @@ ISO_CONTENT=$(mktemp "$TMP"/iso-server-content.XXXXXX -d)
 INITRAMFS=$(mktemp "$TMP"/iso-server-initramfs.XXXXXX -d)
 MODULES=/lib/modules/$(uname -r)
 
-dd if=/dev/zero of="$ISO_CONTENT"/efi.img bs=7M seek=1 count=0
+dd if=/dev/zero of="$ISO_CONTENT"/efi.img bs=14M seek=1 count=0
 LOOP_DEV=`losetup -f --show "$ISO_CONTENT"/efi.img`
 mkfs.vfat "$LOOP_DEV"
 mount "$LOOP_DEV" "$ISO_EFI"
 
-cp -a /boot/efi/EFI "$ISO_EFI"
-
-umount "$ISO_EFI"
-losetup -d "$LOOP_DEV"
-
-cp /boot/vmlinuz-*.x86_64 "$ISO_CONTENT"/vmlinuz
+cp /boot/vmlinuz-*.x86_64 "$ISO_EFI"/vmlinuz
 
 CGO_ENABLED=0 go build -o "$INITRAMFS"/init ./app
 
@@ -35,23 +30,14 @@ xzcat "$MODULES"/kernel/net/core/failover.ko.xz > "$INITRAMFS"/modules/failover.
 cp /etc/pki/tls/certs/ca-bundle.crt "$INITRAMFS"/etc/pki/tls/certs
 
 pushd "$INITRAMFS"
-find . | cpio -c -o --owner root:root | xz --check=crc32 > "$ISO_CONTENT"/initramfs.img
+find . | cpio -c -o --owner root:root | xz --check=crc32 > "$ISO_EFI"/initramfs.img
 popd
 
-mkdir -p "$ISO_CONTENT"/EFI/fedora
-cat > "$ISO_CONTENT"/EFI/fedora/grub.cfg << EOF
-set default=0
+# startup.nsh is used as a fallback if no valid UEFi entry is found
+echo "vmlinuz loglevel=4 initrd=\initramfs.img" > "$ISO_EFI"/startup.nsh
 
-insmod part_gpt
-insmod fat
-
-set timeout=1
-
-menuentry 'Start OS' {
-  linuxefi /vmlinuz loglevel=4 #console=tty0 console=ttyS0,9600n8
-  initrdefi /initramfs.img
-}
-EOF
+umount "$ISO_EFI"
+losetup -d "$LOOP_DEV"
 
 TIME=`date +"%Y-%m-%d-%H-%M-%S"`
 ISO_OUT=./server-"$TIME".iso

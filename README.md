@@ -21,10 +21,3 @@ connected to the internet packed into small ~15MB ISO file.
 ## Missing features
 - clock synchronization
 - mounting persistent storage
-- mounting cdrom to offload initramfs (see thoughts below)
-
-## Thoughts
-- Keeping big apps inside initramfs is not perfect because 
-  it eats twice more RAM: first time as a part of initramfs, second time
-  when binary is loaded and executed. It's better to store main app inside ISO
-  image next to initramfs, mount /dev/cdrom and execute the main app from there.

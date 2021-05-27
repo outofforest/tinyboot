@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/digineo/go-dhclient"
@@ -12,6 +13,9 @@ import (
 	"github.com/milosgajdos/tenus"
 	"golang.org/x/sys/unix"
 )
+
+const persistentMount = "/persistent"
+const persistentLabel = "tinyboot"
 
 var dhcpRequestList = []layers.DHCPOpt{
 	layers.DHCPOptSubnetMask,
@@ -25,10 +29,31 @@ func Configure() {
 		return
 	}
 
-	// Load kernel modules for qemu hardware
+	// Load kernel modules for qemu network
 	modprobe("/modules/failover.ko")
 	modprobe("/modules/net_failover.ko")
 	modprobe("/modules/virtio_net.ko")
+
+	// Load kernel modules for qemu drives
+	modprobe("/modules/virtio_blk.ko")
+	modprobe("/modules/virtio_scsi.ko")
+
+	// Mount filesystems
+
+	ensure(os.Mkdir("/proc", 0o755))
+	ensure(os.Mkdir("/sys", 0o755))
+	ensure(os.Mkdir("/dev", 0o755))
+
+	ok(syscall.Mount("none", "/proc", "proc", 0, ""))
+	ok(syscall.Mount("none", "/sys", "sysfs", 0, ""))
+	ok(syscall.Mount("none", "/dev", "devtmpfs", 0, ""))
+
+	// Mount persistent drive
+
+	if drive := findDrive(persistentLabel); drive != "" {
+		ensure(os.Mkdir(persistentMount, 0o755))
+		ok(syscall.Mount(drive, persistentMount, "btrfs", 0, ""))
+	}
 
 	// Configure network
 	ifs, err := net.Interfaces()
@@ -88,6 +113,12 @@ func modprobe(file string) {
 	}()
 
 	ok(unix.FinitModule(int(f.Fd()), "", 0))
+}
+
+func ensure(err error) {
+	if err != nil && !os.IsExist(err) {
+		panic(err)
+	}
 }
 
 func ok(err error) {

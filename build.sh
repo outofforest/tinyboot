@@ -2,16 +2,17 @@
 
 set -e
 
-DIR=$(mktemp /tmp/iso-server.XXXXXX -d)
+DIR=$(mktemp /tmp/iso-tinyboot.XXXXXX -d)
 MODULES=/lib/modules/$(uname -r)
 
-mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs,initramfs/proc/self}
+mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs}
 
 # Copy stuff to initramfs
 
 CGO_ENABLED=0 go build -o "$DIR"/initramfs/init ./app
-ln -s /init "$DIR"/initramfs/proc/self/exe
-cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs
+cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs # for trusted certs
+xzcat "$MODULES"/kernel/drivers/block/virtio_blk.ko.xz > "$DIR"/initramfs/modules/virtio_blk.ko
+xzcat "$MODULES"/kernel/drivers/scsi/virtio_scsi.ko.xz > "$DIR"/initramfs/modules/virtio_scsi.ko
 xzcat "$MODULES"/kernel/drivers/net/virtio_net.ko.xz > "$DIR"/initramfs/modules/virtio_net.ko
 xzcat "$MODULES"/kernel/drivers/net/net_failover.ko.xz > "$DIR"/initramfs/modules/net_failover.ko
 xzcat "$MODULES"/kernel/net/core/failover.ko.xz > "$DIR"/initramfs/modules/failover.ko
@@ -41,7 +42,7 @@ xorriso -as mkisofs \
   -no-emul-boot \
   -e /efi.img \
   -partition_cyl_align all \
-  -o ./server-$(date +"%Y-%m-%d-%H-%M-%S").iso \
+  -o ./tinyboot-$(date +"%Y-%m-%d-%H-%M-%S").iso \
   "$DIR"/iso
 
 rm -rf "$DIR"

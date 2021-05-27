@@ -18,19 +18,20 @@ func main() {
 
 	tinyboot.Configure()
 
-	for {
-		func() {
-			resp, err := http.Get("https://www.google.com")
+	func() {
+		resp, err := http.Get("https://www.google.com")
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			defer resp.Body.Close()
+			_, err = io.Copy(os.Stdout, resp.Body)
 			if err != nil {
-				fmt.Println(err)
-			} else {
-				defer resp.Body.Close()
-				_, err = io.Copy(os.Stdout, resp.Body)
-				if err != nil {
-					panic(err)
-				}
+				panic(err)
 			}
-		}()
+		}
+	}()
+
+	for {
 		<-time.After(time.Second)
 	}
 }

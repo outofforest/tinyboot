@@ -3,7 +3,6 @@ package tinyboot
 import (
 	"context"
 	"net"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -13,19 +12,6 @@ import (
 	"github.com/milosgajdos/tenus"
 	"golang.org/x/sys/unix"
 )
-
-// Dialer is the dialer with DNS resolver configured
-var Dialer = &net.Dialer{
-	Resolver: &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout: 5 * time.Second,
-			}
-			return d.DialContext(ctx, "udp", "8.8.8.8:53")
-		},
-	},
-}
 
 var dhcpRequestList = []layers.DHCPOpt{
 	layers.DHCPOptSubnetMask,
@@ -83,8 +69,14 @@ func Configure() {
 	}
 	wait.Wait()
 
-	http.DefaultTransport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return Dialer.DialContext(ctx, network, addr)
+	net.DefaultResolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 5 * time.Second,
+			}
+			return d.DialContext(ctx, "udp", "8.8.8.8:53")
+		},
 	}
 }
 

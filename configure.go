@@ -2,7 +2,6 @@ package tinyboot
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -39,7 +38,6 @@ func Configure() {
 	wait := sync.WaitGroup{}
 	for _, iface := range ifs {
 		name := iface.Name
-		fmt.Println(name)
 		if iface.Flags&net.FlagLoopback != 0 {
 			// loopback interface
 			continue
@@ -50,16 +48,13 @@ func Configure() {
 		link, err := tenus.NewLinkFrom(name)
 		ok(err)
 		if iface.Flags&net.FlagUp == 0 {
-			fmt.Printf("Interface %s is down, starting it\n", name)
 			ok(link.SetLinkUp())
 		}
-		fmt.Printf("Setting DHCP for interface %s\n", name)
 		client := dhclient.Client{
 			Iface: &iface,
 			OnBound: func(lease *dhclient.Lease) {
 				ok(link.SetLinkIp(lease.FixedAddress, &net.IPNet{IP: lease.FixedAddress, Mask: lease.Netmask}))
 				ok(link.SetLinkDefaultGw(&lease.Router[0]))
-				fmt.Printf("Interface %s configured:\n%+v\n", name, lease)
 
 				wait.Done()
 			},

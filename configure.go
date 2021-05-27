@@ -14,6 +14,19 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Dialer is the dialer with DNS resolver configured
+var Dialer = &net.Dialer{
+	Resolver: &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 5 * time.Second,
+			}
+			return d.DialContext(ctx, "udp", "8.8.8.8:53")
+		},
+	},
+}
+
 var dhcpRequestList = []layers.DHCPOpt{
 	layers.DHCPOptSubnetMask,
 	layers.DHCPOptRouter,
@@ -38,7 +51,6 @@ func Configure() {
 	wait := sync.WaitGroup{}
 	for _, iface := range ifs {
 		name := iface.Name
-
 		link, err := tenus.NewLinkFrom(name)
 		ok(err)
 		if iface.Flags&net.FlagUp == 0 {
@@ -71,21 +83,8 @@ func Configure() {
 	}
 	wait.Wait()
 
-	// Configure DNS resolver
-	dialer := &net.Dialer{
-		Resolver: &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				d := net.Dialer{
-					Timeout: 5 * time.Second,
-				}
-				return d.DialContext(ctx, "udp", "8.8.8.8:53")
-			},
-		},
-	}
-
 	http.DefaultTransport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return dialer.DialContext(ctx, network, addr)
+		return Dialer.DialContext(ctx, network, addr)
 	}
 }
 

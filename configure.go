@@ -38,6 +38,13 @@ func Configure() {
 	wait := sync.WaitGroup{}
 	for _, iface := range ifs {
 		name := iface.Name
+
+		link, err := tenus.NewLinkFrom(name)
+		ok(err)
+		if iface.Flags&net.FlagUp == 0 {
+			ok(link.SetLinkUp())
+		}
+
 		if iface.Flags&net.FlagLoopback != 0 {
 			// loopback interface
 			continue
@@ -45,11 +52,6 @@ func Configure() {
 
 		wait.Add(1)
 
-		link, err := tenus.NewLinkFrom(name)
-		ok(err)
-		if iface.Flags&net.FlagUp == 0 {
-			ok(link.SetLinkUp())
-		}
 		client := dhclient.Client{
 			Iface: &iface,
 			OnBound: func(lease *dhclient.Lease) {

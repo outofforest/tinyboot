@@ -16,7 +16,7 @@ func main() {
 	// ignore logs produced by dhclient
 	log.SetOutput(ioutil.Discard)
 
-	tinyboot.Configure()
+	defer tinyboot.Configure()()
 
 	func() {
 		resp, err := http.Get("https://www.google.com")
@@ -31,7 +31,6 @@ func main() {
 		}
 	}()
 
-	for {
-		<-time.After(time.Second)
-	}
+	<-time.After(5 * time.Second)
+	panic("reboot test")
 }

@@ -5,11 +5,16 @@ set -e
 DIR=$(mktemp /tmp/iso-tinyboot.XXXXXX -d)
 MODULES=/lib/modules/$(uname -r)
 
-mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs}
+mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs,initramfs/proc/self}
 
 # Copy stuff to initramfs
 
 CGO_ENABLED=0 go build -ldflags="-s -w" -o "$DIR"/initramfs/init ./app
+
+# The /proc/self/exe path used by os.Executable is resolved at init time before procfs is mounted.
+# To make it work fake /proc/self/exe has to be provided before starting GO application.
+ln -s /init "$DIR"/initramfs/proc/self/exe
+
 cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs # for trusted certs
 xzcat "$MODULES"/kernel/drivers/block/virtio_blk.ko.xz > "$DIR"/initramfs/modules/virtio_blk.ko
 xzcat "$MODULES"/kernel/drivers/scsi/virtio_scsi.ko.xz > "$DIR"/initramfs/modules/virtio_scsi.ko

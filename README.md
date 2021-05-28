@@ -10,7 +10,7 @@ to support storage and networking inside qemu, using virtio drivers.
 Then bootable ISO is created containing this initramfs and kernel.
 Boot stub feature of kernel is used so no separate bootloader is required, saving space.
 
-`tinyboot.Configure()` call in the app is responsible for configuring the environment.
+`defer tinyboot.Configure()()` call in the app is responsible for configuring the environment.
 
 `build.sh` creates initramfs based on Fedora 34.
 

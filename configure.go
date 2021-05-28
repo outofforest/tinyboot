@@ -86,7 +86,6 @@ func Configure() func() {
 		// Mount cdrom drive
 
 		if drive := findCDROMFS(); drive != "" {
-			fmt.Println(drive)
 			ensure(os.Mkdir(cdromMount, 0o755))
 			ok(syscall.Mount(drive, cdromMount, "iso9660", syscall.MS_RDONLY, ""))
 		}

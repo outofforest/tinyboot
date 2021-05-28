@@ -1,7 +1,7 @@
 # Tinyboot
 
 This project allows you to build tiny bootable ISO running GO application.
-ISO built from this example takes ~15MB where ~8MB is taken by GO app itself.
+ISO built from this example takes ~14MB where ~2MB is taken by GO app itself.
 
 `build.sh` script builds example GO application stored in `/app`
 and places it inside initramfs together with files required

@@ -9,7 +9,7 @@ mkdir -p "$DIR"/{iso,efi,initramfs/modules,initramfs/etc/pki/tls/certs}
 
 # Copy stuff to initramfs
 
-CGO_ENABLED=0 go build -o "$DIR"/initramfs/init ./app
+CGO_ENABLED=0 go build -ldflags="-s -w" -o "$DIR"/initramfs/init ./app
 cp /etc/pki/tls/certs/ca-bundle.crt "$DIR"/initramfs/etc/pki/tls/certs # for trusted certs
 xzcat "$MODULES"/kernel/drivers/block/virtio_blk.ko.xz > "$DIR"/initramfs/modules/virtio_blk.ko
 xzcat "$MODULES"/kernel/drivers/scsi/virtio_scsi.ko.xz > "$DIR"/initramfs/modules/virtio_scsi.ko
@@ -20,7 +20,7 @@ xzcat "$MODULES"/kernel/fs/isofs/isofs.ko.xz > "$DIR"/initramfs/modules/isofs.ko
 
 # Copy stuff to EFI
 
-dd if=/dev/zero of="$DIR"/iso/efi.img bs=14M seek=1 count=0
+dd if=/dev/zero of="$DIR"/iso/efi.img bs=13M seek=1 count=0
 mkfs.vfat "$DIR"/iso/efi.img
 mount "$DIR"/iso/efi.img "$DIR"/efi
 

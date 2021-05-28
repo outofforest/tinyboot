@@ -14,7 +14,7 @@ import (
 const btrfsID = "_BHRfS_M"
 
 func findDrive(label string) string {
-	devs, err := ioutil.ReadDir("/dev")
+	devs, err := ioutil.ReadDir("/sys/class/block")
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func findDrive(label string) string {
 				break
 			}
 		}
-		if string(label) == label {
+		if string(labelRaw) == label {
 			return path
 		}
 	}

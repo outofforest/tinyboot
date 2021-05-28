@@ -40,3 +40,5 @@ labeled `tinyboot`. The first one found is mounted to `/persistent`.
 
 ## Missing features
 - clock synchronization
+- ACPI signals for rebooting and powering off the machine
+- mounting cdrom (iso image)

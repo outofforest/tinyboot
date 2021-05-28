@@ -10,8 +10,6 @@ to support storage and networking inside qemu, using virtio drivers.
 Then bootable ISO is created containing this initramfs and kernel.
 Boot stub feature of kernel is used so no separate bootloader is required, saving space.
 
-`defer tinyboot.Configure()()` call in the app is responsible for configuring the environment.
-
 `build.sh` creates initramfs based on Fedora 34.
 
 ## Networking
@@ -46,6 +44,15 @@ there directly.
 To support persistent storage, `/dev` is scanned to find drive containing `btrfs` filesystem
 labeled `tinyboot`. The first one found is mounted to `/persistent`.
 
+## ACPI
+
+`tinyboot.Configure()` returns context which is canceled whenever machine is requested
+to be turned off or rebooted and cleanup function which should be deferred and called before exit.
+If application exits on its own (without signal from ACPI), deferred cleanup function causes reboot.
+Same happens in case of panic.
+
+Using ACPI functions (power off or restart option of VM) is the correct way to execute graceful application
+shutdown or restart.
+
 ## Missing features
 - clock synchronization
-- ACPI signals for rebooting and powering off the machine

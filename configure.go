@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,14 +27,19 @@ var dhcpRequestList = []layers.DHCPOpt{
 }
 
 // Configure configures tinyboot os
-func Configure() func() {
+func Configure() (context.Context, func()) {
 	if os.Args[0] != "/init" {
 		// We are not inside tinyboot os so there is nothing to configure
-		return func() {}
+		return context.Background(), func() {}
 	}
 
+	internalCtx, internalCancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(internalCtx)
+
+	networkConfigured := make(chan struct{})
+	forever := make(chan struct{})
 	ready := make(chan struct{})
-	exit := make(chan struct{})
+	exitAction := RebootAction
 	go func() {
 		defer func() {
 			mountsRaw, err := ioutil.ReadFile("/proc/mounts")
@@ -53,11 +58,17 @@ func Configure() func() {
 					ok(syscall.Unmount(mountpoint, 0))
 				}
 			}
+			defer internalCancel()
+			defer cancel()
 
 			ok(syscall.Unmount("/proc", 0))
 			ok(syscall.Unmount("/sys", 0))
 			ok(syscall.Unmount("/dev", 0))
 
+			if exitAction == PowerOffAction {
+				ok(syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF))
+				return
+			}
 			ok(syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART))
 		}()
 
@@ -101,7 +112,7 @@ func Configure() func() {
 		ifs, err := net.Interfaces()
 		ok(err)
 
-		wait := sync.WaitGroup{}
+		var ifacesToConfigure int32
 		for _, iface := range ifs {
 			name := iface.Name
 			link, err := tenus.NewLinkFrom(name)
@@ -115,15 +126,16 @@ func Configure() func() {
 				continue
 			}
 
-			wait.Add(1)
-
+			atomic.AddInt32(&ifacesToConfigure, 1)
 			client := dhclient.Client{
 				Iface: &iface,
 				OnBound: func(lease *dhclient.Lease) {
 					ok(link.SetLinkIp(lease.FixedAddress, &net.IPNet{IP: lease.FixedAddress, Mask: lease.Netmask}))
 					ok(link.SetLinkDefaultGw(&lease.Router[0]))
 
-					wait.Done()
+					if atomic.AddInt32(&ifacesToConfigure, -1) == 0 {
+						close(networkConfigured)
+					}
 				},
 			}
 
@@ -134,7 +146,6 @@ func Configure() func() {
 			client.Start()
 			defer client.Stop()
 		}
-		wait.Wait()
 
 		net.DefaultResolver = &net.Resolver{
 			PreferGo: true,
@@ -146,20 +157,32 @@ func Configure() func() {
 			},
 		}
 
+		select {
+		case <-networkConfigured:
+		case <-ctx.Done():
+			return
+		}
 		close(ready)
-		<-exit
+		<-internalCtx.Done()
+	}()
+
+	go func() {
+		defer cancel()
+
+		action, err := WaitACPI(internalCtx)
+		ok(err)
+		if action != NoAction {
+			exitAction = action
+		}
 	}()
 
 	<-ready
-
-	return func() {
+	return ctx, func() {
 		if p := recover(); p != nil {
 			fmt.Printf("Application panicked: %v\n", p)
 		}
-		close(exit)
-
-		// pause until reboot to prevent kernel panic
-		<-make(chan struct{})
+		internalCancel()
+		<-forever
 	}
 }
 

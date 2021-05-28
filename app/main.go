@@ -16,7 +16,8 @@ func main() {
 	// ignore logs produced by dhclient
 	log.SetOutput(ioutil.Discard)
 
-	defer tinyboot.Configure()()
+	ctx, exit := tinyboot.Configure()
+	defer exit()
 
 	func() {
 		resp, err := http.Get("https://www.google.com")
@@ -31,6 +32,12 @@ func main() {
 		}
 	}()
 
-	<-time.After(5 * time.Second)
-	panic("reboot test")
+	select {
+	case <-time.After(10 * time.Second):
+		panic("reboot test")
+	case <-ctx.Done():
+		fmt.Println("Context canceled")
+		<-time.After(5 * time.Second)
+	}
+
 }

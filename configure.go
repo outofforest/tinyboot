@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const cdromMount = "/iso"
 const persistentMount = "/persistent"
 const persistentLabel = "tinyboot"
 
@@ -69,6 +70,9 @@ func Configure() func() {
 		modprobe("/modules/virtio_blk.ko")
 		modprobe("/modules/virtio_scsi.ko")
 
+		// Load kernel modules for iso9660 filesystem
+		modprobe("/modules/isofs.ko")
+
 		// Mount filesystems
 
 		ensure(os.Mkdir("/proc", 0o755))
@@ -79,9 +83,17 @@ func Configure() func() {
 		ok(syscall.Mount("none", "/sys", "sysfs", 0, ""))
 		ok(syscall.Mount("none", "/dev", "devtmpfs", 0, ""))
 
+		// Mount cdrom drive
+
+		if drive := findCDROMFS(); drive != "" {
+			fmt.Println(drive)
+			ensure(os.Mkdir(cdromMount, 0o755))
+			ok(syscall.Mount(drive, cdromMount, "iso9660", syscall.MS_RDONLY, ""))
+		}
+
 		// Mount persistent drive
 
-		if drive := findDrive(persistentLabel); drive != "" {
+		if drive := findPersistentFS(persistentLabel); drive != "" {
 			ensure(os.Mkdir(persistentMount, 0o755))
 			ok(syscall.Mount(drive, persistentMount, "btrfs", 0, ""))
 		}

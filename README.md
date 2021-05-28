@@ -25,15 +25,23 @@ copy and load appropriate module.
 Virtio driver is loaded to support storage delivered by qemu. If you need sth else, add
 and load appropriate driver.
 
-Filesystems supported by the kernel (at least mine):
+Supported filesystems:
 - tmpfs
 - ramfs
 - ext2
 - ext3
 - ext4
 - btrfs
+- iso9660
 
-## Mounting persistent storage
+## ISO content
+
+To save RAM, you don't need to copy all the required content to initramfs.
+`/dev` is scanned to find iso9660 filesystem. The first one found is mounted to `/iso`.
+If your app requires read-only access to some files, you may copy them to ISO image and read from
+there directly.
+
+## Persistent storage
 
 To support persistent storage, `/dev` is scanned to find drive containing `btrfs` filesystem
 labeled `tinyboot`. The first one found is mounted to `/persistent`.
@@ -41,4 +49,3 @@ labeled `tinyboot`. The first one found is mounted to `/persistent`.
 ## Missing features
 - clock synchronization
 - ACPI signals for rebooting and powering off the machine
-- mounting cdrom (iso image)
